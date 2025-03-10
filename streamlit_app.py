@@ -21,12 +21,20 @@ def configure_sidebar() -> None:
         openai_api_key = st.text_input("API Key", type="password")
         
         with st.expander(":gear: Settings"):
-            st.write("Settings go here")
-            # 이미지 크기 선택 (OpenAI DALL·E 지원 사이즈)
-            image_size = st.radio("Select Image Size", ["256x256", "512x512", "1024x1024"], index=0)
-            num_outputs = st.slider("Number of outputs", min_value=1, max_value=3, value=3)
+            # 사이드바에서 DALL·E 모델 선택
+            st.subheader("🔧 Select DALL·E Model")
+            dalle_model = st.radio("Choose a model", ["dall-e-2", "dall-e-3"], index=0)
 
-    return image_size, num_outputs, openai_api_key
+            # 모델별 설정 조정
+            if dalle_model == "dall-e-3":
+                image_size = "1024x1024"  # DALL·E 3는 1024x1024 고정
+                num_outputs = 1  # DALL·E 3는 한 번에 1개만 생성 가능
+            else:
+                image_size = st.radio("Select Image Size", ["256x256", "512x512", "1024x1024"], index=0)
+                num_outputs = st.slider("Number of outputs", min_value=1, max_value=3, value=3)
+
+
+    return image_size, num_outputs, openai_api_key, dalle_model
 
 # OpenAI GPT를 사용하여 한글 프롬프트를 최적화된 영어 프롬프트로 변환하는 함수
 def optimize_prompt_with_gpt(prompt, api_key):
@@ -51,7 +59,7 @@ def optimize_prompt_with_gpt(prompt, api_key):
         st.error(str(e))
         return prompt  # 실패 시 원본 그대로 사용
 
-def generate_ai_image_from_drawing(image_data, api_key, num_outputs, image_size):
+def generate_ai_image_from_drawing(image_data, api_key, num_outputs, image_size, dalle_model):
     if not api_key:
         st.warning("⚠️ Please enter your OpenAI API Key!")
         return None
@@ -72,7 +80,7 @@ def generate_ai_image_from_drawing(image_data, api_key, num_outputs, image_size)
     client = openai.OpenAI(api_key=api_key)
 
     response = client.images.generate(
-        model="dall-e-2",  
+        model=dalle_model,  
         prompt="Generate an image by using the given sketch as a reference. The AI should complete and enhance the sketch while keeping its original style, shapes, and details. The output should be visually similar to the uploaded sketch, but with better color, shading, and fine details.",
         n=num_outputs,
         size=image_size
@@ -83,7 +91,9 @@ def generate_ai_image_from_drawing(image_data, api_key, num_outputs, image_size)
     return response
 
 
-def main_page(image_size: str , num_outputs: int, openai_api_key: str) -> None:
+def main_page(image_size: str , num_outputs: int, openai_api_key: str, dalle_model: str) -> None:
+    st.title("AI Image Generator Demo")
+    st.subheader("RateLimit 이 걸려있기 때문에 1분에 5개의 요청만 가능합니다.")
     option = st.radio("Choose an input method:", ("Draw an image", "Describe with text"))
 
     client = openai.OpenAI(api_key=openai_api_key)
@@ -111,7 +121,8 @@ def main_page(image_size: str , num_outputs: int, openai_api_key: str) -> None:
                     canvas_result.image_data,
                     openai_api_key,
                     num_outputs,
-                    image_size
+                    image_size,
+                    dalle_model
                 )
 
                 if response:
@@ -148,7 +159,7 @@ def main_page(image_size: str , num_outputs: int, openai_api_key: str) -> None:
                     st.write("⏳ Generating AI image...")
                     openai.api_key = openai_api_key
                     response = client.images.generate(
-                        model="dall-e-2",  # 최신 모델 지정
+                        model=dalle_model,  # 최신 모델 지정
                         prompt=optimized_prompt,
                         n=num_outputs,
                         size=image_size
@@ -167,8 +178,8 @@ def main_page(image_size: str , num_outputs: int, openai_api_key: str) -> None:
 
 
 def main() -> None:
-    image_size, num_outputs, openai_api_key = configure_sidebar()
-    main_page(image_size, num_outputs, openai_api_key)
+    image_size, num_outputs, openai_api_key, dalle_model = configure_sidebar()
+    main_page(image_size, num_outputs, openai_api_key, dalle_model)
 
 if __name__ == "__main__":
     main()
