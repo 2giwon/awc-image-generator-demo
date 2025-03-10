@@ -47,6 +47,8 @@ def optimize_prompt_with_gpt(prompt, api_key):
     try:
         client = openai.OpenAI(api_key=api_key)
 
+        st.write("⏳ Optimizing prompt with GPT...")
+        
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
