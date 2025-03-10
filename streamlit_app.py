@@ -28,6 +28,29 @@ def configure_sidebar() -> None:
 
     return image_size, num_outputs, openai_api_key
 
+# OpenAI GPT를 사용하여 한글 프롬프트를 최적화된 영어 프롬프트로 변환하는 함수
+def optimize_prompt_with_gpt(prompt, api_key):
+    try:
+        client = openai.OpenAI(api_key=api_key)
+
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a helpful AI assistant that improves text prompts for AI image generation."},
+                {"role": "user", "content": f"Please refine and translate the following text into an optimized English prompt for AI image generation: {prompt}"}
+            ],
+            temperature=0.7,
+            max_tokens=100
+        )
+
+        optimized_prompt = response.choices[0].message.content.strip()
+        return optimized_prompt
+
+    except Exception as e:
+        st.error("❌ Prompt optimization failed.")
+        st.error(str(e))
+        return prompt  # 실패 시 원본 그대로 사용
+
 def generate_ai_image_from_drawing(image_data, api_key, num_outputs, image_size):
     if not api_key:
         st.warning("⚠️ Please enter your OpenAI API Key!")
@@ -109,6 +132,7 @@ def main_page(image_size: str , num_outputs: int, openai_api_key: str) -> None:
                     ":orange[**Enter prompt: start typing ✍🏾**]",
                     value="A vibrant and dynamic digital illustration of multiple people participating in an online challenge through a mobile app. The participants are actively engaged, checking their rankings on a leaderboard within the app, and striving to improve their performance. The image conveys a sense of competition, motivation, and teamwork. The background features a futuristic interface with charts, rankings, and progress bars, emphasizing the challenge dynamics. The overall atmosphere is energetic and inspiring, with users pushing themselves to achieve higher scores and celebrating their progress together.")  
 
+
         if st.button("🎨 Generate Image"):
             try:
                 if not openai_api_key:
@@ -116,11 +140,16 @@ def main_page(image_size: str , num_outputs: int, openai_api_key: str) -> None:
                 elif not prompt:
                     st.warning("⚠️ Please enter a description!")
                 else:
+                    # GPT를 통해 최적화된 프롬프트 변환
+                    if prompt:
+                        optimized_prompt = optimize_prompt_with_gpt(prompt, openai_api_key)
+                        st.write(f"🔄 Optimized Prompt: **{optimized_prompt}**")
+
                     st.write("⏳ Generating AI image...")
                     openai.api_key = openai_api_key
                     response = client.images.generate(
                         model="dall-e-2",  # 최신 모델 지정
-                        prompt=prompt,
+                        prompt=optimized_prompt,
                         n=num_outputs,
                         size=image_size
                     )
