@@ -17,8 +17,14 @@ def configure_sidebar() -> None:
     with st.sidebar:
         st.title("Image Generator Demo")
 
+        if st.secrets["OPEN_AI_KEY"]:
+            openai_api_key = st.secrets["OPEN_AI_KEY"]
+
         st.subheader("🔑 Enter OpenAI API Key")
-        openai_api_key = st.text_input("API Key", type="password")
+        if not openai_api_key:
+            openai_api_key = st.text_input("API Key", type="password")
+        else:
+            st.write("✅ API Key has been set.")
         
         with st.expander(":gear: Settings"):
             # 사이드바에서 DALL·E 모델 선택
